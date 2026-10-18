@@ -1,16 +1,84 @@
-# FairJudge
+<div align="center">
 
-**FairJudge** is a hackathon management platform designed to help organizers run events and make project reviews more consistent and transparent. It combines a Next.js dashboard, an Express/MongoDB API, and a Python AI service for decision-support workflows such as duplicate checks, reviewer assignment, team formation, and review analysis.
+# ⚖️ FairJudge
 
-> AI results are recommendations and review signals. Organizers and judges remain responsible for decisions.
+### Next-Generation Hackathon Management & AI-Assisted Evaluation Engine
 
-## At a glance
+Empowering organizers to orchestrate high-impact hackathons with structured workflows, automated team balancing, and transparent, bias-mitigated project evaluations.
 
-- Role-based workflows for organizers, judges, participants, and administrators.
-- Hackathon setup, registration, team coordination, project submissions, evaluations, and results.
-- AI-assisted duplicate and bias checks, review recommendations, reviewer assignment, and team formation.
-- Audit and analytics endpoints for AI checks.
-- A separate RAG service directory is included, but its current FastAPI entry point is only a health placeholder; retrieval/chat is not yet wired into the running application.
+[![Next.js](https://img.shields.io/badge/Next.js-14%2B-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas%20%7C%20Local-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Deployment](https://img.shields.io/badge/Render-Blueprint%20Ready-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://render.com/)
+
+[Key Features](#-key-features) • [System Architecture](#-system-architecture) • [Getting Started](#-getting-started) • [API Directory](#-api-endpoints) • [Deployment](#-cloud-deployment)
+
+</div>
+
+---
+
+> ℹ️ **Responsible AI Notice**: Machine learning inferences in FairJudge function strictly as **decision-support signals**. Final scores, disqualifications, and event outcomes remain entirely under the governance of human organizers and evaluators.
+
+---
+
+## ⚡ Key Highlights
+
+<table>
+  <tr>
+    <td width="50%">
+      <h3>👥 Multi-Role Workspace</h3>
+      Dedicated dashboards tailored for <b>Organizers</b>, <b>Judges</b>, <b>Participants</b>, and <b>System Administrators</b> with role-restricted RBAC permissions.
+    </td>
+    <td width="50%">
+      <h3>🧠 AI-Assisted Fairness</h3>
+      Flag scoring outliers, evaluate historical reviewer skew, inspect duplicate applications, and surface evaluation anomalies in real time.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3>🤝 Intelligent Coordination</h3>
+      Automated participant clustering for balanced team formation and conflict-free reviewer-to-project allocation algorithms.
+    </td>
+    <td width="50%">
+      <h3>📜 End-to-End Lifecycle</h3>
+      Handles the complete event continuum: problem statements, registrations, team check-ins, live judging rubrics, appeals, and automated PDF certification.
+    </td>
+  </tr>
+</table>
+
+---
+
+## 🏗️ System Architecture
+
+```text
+               ┌────────────────────────────────────────────────────────┐
+               │              Frontend Client (Next.js 14)              │
+               │        Role-Based Portals & Live Visualizations       │
+               └───────────────────────────┬────────────────────────────┘
+                                           │
+                                  REST Requests / JSON
+                                           ▼
+               ┌────────────────────────────────────────────────────────┐
+               │           Core API Gateway (Node.js / Express)         │
+               │      Auth, App State, RBAC, Data Validation, Jobs     │
+               └───────────────┬────────────────────────┬───────────────┘
+                               │                        │
+                    Internal Microservice Calls         │ Mongoose ODM
+                               ▼                        ▼
+┌──────────────────────────────────────────────┐  ┌─────────────────────┐
+│       AI Engine (Python / FastAPI)           │  │                     │
+│  • Sentence Transformers (Embeddings)        │  │    MongoDB Atlas    │
+│  • Scikit-learn (Bias / Anomalies)           │  │   (Multi-tenant     │
+│  • Motor (Async DB Operations)               │  │    Persistence)     │
+└──────────────────────┬───────────────────────┘  │                     │
+                       │                          │                     │
+            Health Stub Only                      │                     │
+                       ▼                          │                     │
+┌──────────────────────────────────────────────┐  │                     │
+│    RAG Engine Scaffold (FastAPI :8001)       │◄─┴─────────────────────┘
+└──────────────────────────────────────────────┘
 
 ## Architecture
 
