@@ -79,7 +79,7 @@ Empowering organizers to orchestrate high-impact hackathons with structured work
 ┌──────────────────────────────────────────────┐  │                     │
 │    RAG Engine Scaffold (FastAPI :8001)       │◄─┴─────────────────────┘
 └──────────────────────────────────────────────┘
-
+```
 ## Architecture
 
 | Component | Location | Technology | Local address |
