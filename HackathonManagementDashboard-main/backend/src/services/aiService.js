@@ -2,13 +2,66 @@ const axios = require("axios");
 const pdf = require("pdf-parse");
 const mammoth = require("mammoth");
 
-const AI_URL = process.env.AI_SERVICE_URL || "http://localhost:8000";
+const configuredAIUrl = process.env.AI_SERVICE_URL?.trim();
+const AI_URL = (
+  configuredAIUrl || (process.env.VERCEL ? "" : "http://localhost:8000")
+).replace(/\/+$/, "");
 
 // Axios instance with 10s timeout
 const aiClient = axios.create({
   baseURL: AI_URL,
   timeout: 10000,
 });
+
+const formTeamsLocally = (participants, config = {}) => {
+  const configuredSize = Number(config.maxTeamSize);
+  const maxTeamSize = Number.isInteger(configuredSize) && configuredSize > 0
+    ? configuredSize
+    : 4;
+  const participantsWithSkills = participants.map((participant) => {
+    const user = participant.userId && typeof participant.userId === "object"
+      ? participant.userId
+      : {};
+    const rawSkills = participant.skills || [];
+    const skills = [...new Set(
+      (Array.isArray(rawSkills) ? rawSkills : String(rawSkills).split(","))
+        .filter((skill) => typeof skill === "string")
+        .map((skill) => skill.trim())
+        .filter(Boolean)
+    )];
+
+    return {
+      registration_id: String(participant._id || ""),
+      user_id: String(user._id || participant.userId || ""),
+      name: user.fullName || participant.name || "Unknown",
+      email: user.email || participant.email || "",
+      skills,
+      total_skill_score: skills.length,
+    };
+  }).filter((participant) => participant.registration_id && participant.user_id);
+
+  const teamCount = Math.ceil(participantsWithSkills.length / maxTeamSize);
+  const teams = Array.from({ length: teamCount }, (_, index) => ({
+    team_id: index + 1,
+    total_score: 0,
+    category_coverage: {},
+    members: [],
+  }));
+  const sortedParticipants = participantsWithSkills.sort(
+    (left, right) => right.total_skill_score - left.total_skill_score
+  );
+
+  sortedParticipants.forEach((participant, index) => {
+    const round = Math.floor(index / teamCount);
+    const position = index % teamCount;
+    const teamIndex = round % 2 === 0 ? position : teamCount - position - 1;
+    const team = teams[teamIndex];
+    team.members.push(participant);
+    team.total_score += participant.total_skill_score;
+  });
+
+  return teams;
+};
 
 exports.checkDuplicate = async (userData, existingParticipants) => {
   let attempts = 0;
@@ -38,15 +91,27 @@ exports.checkDuplicate = async (userData, existingParticipants) => {
 };
 
 exports.formTeams = async (participants, config) => {
+  if (!AI_URL) {
+    console.warn("AI_SERVICE_URL is not configured; forming teams locally.");
+    return formTeamsLocally(participants, config);
+  }
+
   try {
     const response = await aiClient.post("/api/team-form", {
       participants,
       config,
+    }, {
+      timeout: 90000,
     });
     return response.data;
   } catch (err) {
-    console.error("AI Team formation failed:", err.message);
-    throw new Error("Failed to form teams via AI Service");
+    const status = err.response?.status;
+    const detail = err.response?.data?.detail || err.response?.data?.message;
+    const message = status
+      ? `AI Service returned ${status}${detail ? `: ${detail}` : ""}`
+      : `AI Service request failed (${err.code || err.message})`;
+    console.warn(`${message}; falling back to local team formation.`);
+    return formTeamsLocally(participants, config);
   }
 };
 
