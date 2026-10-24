@@ -1,7 +1,22 @@
 const app = require("../src/app");
 const connectDB = require("../src/config/db");
+const mongoose = require("mongoose");
 
 let connectionPromise;
+
+const getDatabaseConnection = () => {
+  if (mongoose.connection.readyState === 1) {
+    return Promise.resolve(mongoose.connection);
+  }
+
+  if (!connectionPromise) {
+    connectionPromise = connectDB().finally(() => {
+      connectionPromise = undefined;
+    });
+  }
+
+  return connectionPromise;
+};
 
 module.exports = async (req, res) => {
   const requestOrigin = req.headers.origin;
@@ -37,24 +52,36 @@ module.exports = async (req, res) => {
     return app(req, res);
   }
 
-  connectionPromise ??= connectDB();
+  const requestPath = req.url.split("?")[0];
+  if (requestPath === "/csrf-token" || requestPath === "/api/csrf-token") {
+    if (!req.url.startsWith("/api")) {
+      req.url = `/api${req.url}`;
+    }
+    return app(req, res);
+  }
+
   let connection;
   try {
-    connection = await connectionPromise;
+    connection = await getDatabaseConnection();
   } catch (error) {
-    connectionPromise = undefined;
     console.error("Database connection failed:", error.message);
     return res.status(503).json({
       success: false,
-      message: "Database connection could not be established",
+      message: process.env.MONGO_URI
+        ? "MongoDB connection failed. Verify the Vercel MONGO_URI value, MongoDB credentials, and Atlas Network Access."
+        : "MONGO_URI is not configured for the deployed backend. Add it to the Vercel project environment variables.",
     });
   }
 
-  if (!connection || connection.connection.readyState !== 1) {
-    connectionPromise = undefined;
+  const readyState = mongoose.connection.readyState;
+  if (!connection || readyState !== 1) {
+    console.error(
+      "Database connection did not reach the connected state:",
+      readyState
+    );
     return res.status(503).json({
       success: false,
-      message: "Database connection could not be established",
+      message: "MongoDB is not connected. Verify the deployed backend MONGO_URI configuration.",
     });
   }
 
